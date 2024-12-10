@@ -1,197 +1,155 @@
+import sqlite3
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import ttk
-import sqlite3
 
-# Connect to the database
-conn = sqlite3.connect('finance_manager.db')
-cursor = conn.cursor()
 
-# Create tables with additional fields
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS income (
-    id INTEGER PRIMARY KEY,
-    date TEXT,
-    source TEXT,
-    description TEXT,
-    amount REAL,
-    payment_method TEXT,
-    currency TEXT,
-    notes TEXT
-)
-''')
+# Database setup
+def setup_database():
+    conn = sqlite3.connect('finance_manager.db')
+    cursor = conn.cursor()
 
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS expenses (
-    id INTEGER PRIMARY KEY,
-    date TEXT,
-    category TEXT,
-    description TEXT,
-    amount REAL,
-    payment_method TEXT,
-    currency TEXT,
-    notes TEXT
-)
-''')
+    # Drop old tables if they exist to avoid conflicts
+    cursor.execute("DROP TABLE IF EXISTS income")
+    cursor.execute("DROP TABLE IF EXISTS expenses")
 
-conn.commit()
-conn.close()
+    # Create tables with only the needed fields
+    cursor.execute('''
+    CREATE TABLE income (
+        id INTEGER PRIMARY KEY,
+        date TEXT,
+        source TEXT,
+        amount REAL,
+        payment_method TEXT,
+        currency TEXT,
+        notes TEXT
+    )
+    ''')
+
+    cursor.execute('''
+    CREATE TABLE expenses (
+        id INTEGER PRIMARY KEY,
+        date TEXT,
+        category TEXT,
+        amount REAL,
+        payment_method TEXT,
+        currency TEXT,
+        notes TEXT
+    )
+    ''')
+
+    conn.commit()
+    conn.close()
+
 
 class FinanceManagerApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Personal Finance Manager")
-        self.root.geometry("500x600")
-        self.root.configure(bg="Moccasin")  # Set background color to white
+        self.root.geometry("600x700")
+        self.root.configure(bg="Wheat")
 
-        style = ttk.Style() 
-        style.configure('TFrame', background='Moccasin') 
-        style.configure('TButton', font=('Helvetica',25), padding=20) 
-        style.configure('TLabel',  font=('Helvetica', 25))
+        # Configure the button style
+        self.style = ttk.Style()
+        self.style.configure('TButton', font=('Helvetica', 30))  # Set button font size
 
-        # Dashboard
-        self.dashboard_frame = ttk.Frame(root, padding="30")
-        self.dashboard_frame.pack(fill=tk.BOTH, expand=True)
-
-        ttk.Label(self.dashboard_frame, text="Welcome to Personal Finance Manager", font=("Helvetica", 30)).pack(pady=30)
-
-        self.income_button = ttk.Button(self.dashboard_frame, text="Add Income", command=self.add_income)
-        self.income_button.pack(pady=10)
-
-        self.expense_button = ttk.Button(self.dashboard_frame, text="Add Expense", command=self.add_expense)
-        self.expense_button.pack(pady=10)
-
-        self.report_button = ttk.Button(self.dashboard_frame, text="View Reports", command=self.view_reports)
-        self.report_button.pack(pady=10)
-
-    def add_income(self):
-        self.clear_frame()
-        self.income_frame = ttk.Frame(self.root, padding="25")
-        self.income_frame.pack(fill=tk.BOTH, expand=True)
-
-        ttk.Label(self.income_frame, text="Add Income", font=("Helvetica", 26), background='white').pack(pady=50)
-
-        ttk.Label(self.income_frame, text="Date:", background='white').pack()
-        self.income_date_entry = ttk.Entry(self.income_frame)
-        self.income_date_entry.pack()
-
-        ttk.Label(self.income_frame, text="Source:", background='white').pack()
-        self.income_source_entry = ttk.Entry(self.income_frame)
-        self.income_source_entry.pack()
-
-        ttk.Label(self.income_frame, text="Description:", background='white').pack()
-        self.income_description_entry = ttk.Entry(self.income_frame)
-        self.income_description_entry.pack()
-
-        ttk.Label(self.income_frame, text="Amount:", background='white').pack()
-        self.income_amount_entry = ttk.Entry(self.income_frame)
-        self.income_amount_entry.pack()
-
-        ttk.Label(self.income_frame, text="Payment Method:", background='white').pack()
-        self.income_payment_method_entry = ttk.Entry(self.income_frame)
-        self.income_payment_method_entry.pack()
-
-        ttk.Label(self.income_frame, text="Currency:", background='white').pack()
-        self.income_currency_entry = ttk.Entry(self.income_frame)
-        self.income_currency_entry.pack()
-
-        ttk.Label(self.income_frame, text="Notes:", background='white').pack()
-        self.income_notes_entry = ttk.Entry(self.income_frame)
-        self.income_notes_entry.pack()
-
-        ttk.Button(self.income_frame, text="Add", command=self.save_income).pack(pady=5)
-        ttk.Button(self.income_frame, text="Back", command=self.show_dashboard).pack(pady=5)
-
-    def save_income(self):
-        date = self.income_date_entry.get()
-        source = self.income_source_entry.get()
-        description = self.income_description_entry.get()
-        try:
-            amount = float(self.income_amount_entry.get())
-        except ValueError:
-            messagebox.showerror("Error", "Invalid amount. Please enter a number.")
-            return
-        payment_method = self.income_payment_method_entry.get()
-        currency = self.income_currency_entry.get()
-        notes = self.income_notes_entry.get()
-
-        conn = sqlite3.connect('finance_manager.db')
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO income (date, source, description, amount, payment_method, currency, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                       (date, source, description, amount, payment_method, currency, notes))
-        conn.commit()
-        conn.close()
-
-        messagebox.showinfo("Success", "Income added successfully!")
         self.show_dashboard()
 
-    def add_expense(self):
+    def show_dashboard(self):
         self.clear_frame()
-        self.expense_frame = ttk.Frame(self.root, padding="30")
-        self.expense_frame.pack(fill=tk.BOTH, expand=True)
+        dashboard_frame = ttk.Frame(self.root, padding="20")
+        dashboard_frame.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(self.expense_frame, text="Add Expense", font=("Helvetica", 25), background='white').pack(pady=10)
+        ttk.Label(dashboard_frame, text="Welcome to Personal Finance Manager", font=("Helvetica", 40)).pack(pady=20)
 
-        ttk.Label(self.expense_frame, text="Date:", background='white').pack()
-        self.expense_date_entry = ttk.Entry(self.expense_frame)
-        self.expense_date_entry.pack()
+        ttk.Button(dashboard_frame, text="Add Income", command=self.add_income, width=30).pack(pady=10)
+        ttk.Button(dashboard_frame, text="Add Expense", command=self.add_expense, width=30).pack(pady=10)
+        ttk.Button(dashboard_frame, text="View Reports", command=self.view_reports, width=30).pack(pady=10)
 
-        ttk.Label(self.expense_frame, text="Category:", background='white').pack()
-        self.expense_category_entry = ttk.Entry(self.expense_frame)
-        self.expense_category_entry.pack()
+    def clear_frame(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
 
-        ttk.Label(self.expense_frame, text="Description:", background='white').pack()
-        self.expense_description_entry = ttk.Entry(self.expense_frame)
-        self.expense_description_entry.pack()
+    def add_income(self):
+        self.show_form("Add Income", self.save_income, [
+            ("Date", "date"),
+            ("Source", "source"),
+            ("Amount", "amount"),
+            ("Payment Method", "payment_method"),
+            ("Currency", "currency"),
+            ("Notes", "notes")
+        ])
 
-        ttk.Label(self.expense_frame, text="Amount:", background='white').pack()
-        self.expense_amount_entry = ttk.Entry(self.expense_frame)
-        self.expense_amount_entry.pack()
+    def add_expense(self):
+        self.show_form("Add Expense", self.save_expense, [
+            ("Date", "date"),
+            ("Category", "category"),
+            ("Amount", "amount"),
+            ("Payment Method", "payment_method"),
+            ("Currency", "currency"),
+            ("Notes", "notes")
+        ])
 
-        ttk.Label(self.expense_frame, text="Payment Method:", background='white').pack()
-        self.expense_payment_method_entry = ttk.Entry(self.expense_frame)
-        self.expense_payment_method_entry.pack()
+    def show_form(self, title, save_command, fields):
+        self.clear_frame()
+        form_frame = ttk.Frame(self.root, padding="20")
+        form_frame.pack(fill=tk.BOTH, expand=True)
 
-        ttk.Label(self.expense_frame, text="Currency:", background='white').pack()
-        self.expense_currency_entry = ttk.Entry(self.expense_frame)
-        self.expense_currency_entry.pack()
+        ttk.Label(form_frame, text=title, font=("Helvetica", 18)).pack(pady=10)
 
-        ttk.Label(self.expense_frame, text="Notes:", background='white').pack()
-        self.expense_notes_entry = ttk.Entry(self.expense_frame)
-        self.expense_notes_entry.pack()
+        self.form_entries = {}
 
-        ttk.Button(self.expense_frame, text="Add", command=self.save_expense).pack(pady=5)
-        ttk.Button(self.expense_frame, text="Back", command=self.show_dashboard).pack(pady=5)
+        for label, key in fields:
+            # Adjusted label size for better visibility
+            ttk.Label(form_frame, text=f"{label}:", font=("Helvetica", 12), background="#f0f8ff").pack()
+            entry = ttk.Entry(form_frame, width=50)  # Increased the entry width for better input
+            entry.pack(pady=5)
+            self.form_entries[key] = entry
+
+        ttk.Button(form_frame, text="Save", command=save_command, width=30).pack(pady=15)
+        ttk.Button(form_frame, text="Back", command=self.show_dashboard, width=30).pack(pady=5)
+
+    def save_income(self):
+        self.save_record("income", [
+            "date", "source", "amount", "payment_method", "currency", "notes"
+        ])
 
     def save_expense(self):
-        date = self.expense_date_entry.get()
-        category = self.expense_category_entry.get()
-        description = self.expense_description_entry.get()
-        try:
-            amount = float(self.expense_amount_entry.get())
-        except ValueError:
-            messagebox.showerror("Error", "Invalid amount. Please enter a number.")
-            return
-        payment_method = self.expense_payment_method_entry.get()
-        currency = self.expense_currency_entry.get()
-        notes = self.expense_notes_entry.get()
+        self.save_record("expenses", [
+            "date", "category", "amount", "payment_method", "currency", "notes"
+        ])
+
+    def save_record(self, table, fields):
+        values = []
+        for field in fields:
+            entry = self.form_entries[field].get()
+            if field == "amount":
+                try:
+                    entry = float(entry)
+                except ValueError:
+                    messagebox.showerror("Error", "Invalid amount. Please enter a number.")
+                    return
+            values.append(entry)
 
         conn = sqlite3.connect('finance_manager.db')
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO expenses (date, category, description, amount, payment_method, currency, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                       (date, category, description, amount, payment_method, currency, notes))
-        conn.commit()
-        conn.close()
 
-        messagebox.showinfo("Success", "Expense added successfully!")
+        try:
+            cursor.execute(f"INSERT INTO {table} ({', '.join(fields)}) VALUES ({', '.join(['?'] * len(fields))})", values)
+            conn.commit()
+            messagebox.showinfo("Success", f"{table[:-1].capitalize()} added successfully!")
+        except sqlite3.Error as e:
+            messagebox.showerror("Database Error", str(e))
+        finally:
+            conn.close()
+
         self.show_dashboard()
 
     def view_reports(self):
         self.clear_frame()
-        self.report_frame = ttk.Frame(self.root, padding="10")
-        self.report_frame.pack(fill=tk.BOTH, expand=True)
+        report_frame = ttk.Frame(self.root, padding="200")
+        report_frame.pack(fill=tk.BOTH, expand=True)
 
-        # Fetch income and expenses data from the database
         conn = sqlite3.connect('finance_manager.db')
         cursor = conn.cursor()
 
@@ -203,24 +161,15 @@ class FinanceManagerApp:
 
         conn.close()
 
-        # Display the report
-        ttk.Label(self.report_frame, text=f"Total Income: {total_income:.2f}", background='white').pack(pady=5)
-        ttk.Label(self.report_frame, text=f"Total Expenses: {total_expenses:.2f}", background='white').pack(pady=5)
-        ttk.Label(self.report_frame, text=f"Net Savings: {total_income - total_expenses:.2f}", background='white').pack(pady=5)
+        ttk.Label(report_frame, text=f"Total Income: {total_income:.2f}", font=("Helvetica", 25)).pack(pady=10)
+        ttk.Label(report_frame, text=f"Total Expenses: {total_expenses:.2f}", font=("Helvetica", 25)).pack(pady=10)
+        ttk.Label(report_frame, text=f"Net Savings: {total_income - total_expenses:.2f}", font=("Helvetica", 25)).pack(pady=10)
 
-        ttk.Button(self.report_frame, text="Back", command=self.show_dashboard).pack(pady=5)
+        ttk.Button(report_frame, text="Back", command=self.show_dashboard, width=30).pack(pady=15)
 
-    def clear_frame(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
 
-    def show_dashboard(self):
-        self.clear_frame()
-        self.__init__(self.root)
-
-# Run the application
 if __name__ == "__main__":
+    setup_database()
     root = tk.Tk()
     app = FinanceManagerApp(root)
     root.mainloop()
-
